@@ -1,0 +1,251 @@
+document.addEventListener("deviceready", onDeviceReady);
+
+function onDeviceReady() {
+   useCamera();
+   useMedia();
+   useMediaCapture();
+}
+
+function useCamera() {
+   var takePictureButton = document.getElementById("take-picture-button");
+   var getImageButton = document.getElementById("get-image-button");
+   var getImageForEditButton = document.getElementById("get-image-edit-button");
+   var getVideoButton = document.getElementById("get-video-button");
+   var getMediaButton = document.getElementById("get-any-media-button");
+
+   takePictureButton.addEventListener("click", takePicture);
+   getImageButton.addEventListener("click", getImage);
+   getImageForEditButton.addEventListener("click", getImageForEdit);
+   getVideoButton.addEventListener("click", getVideo);
+   getMediaButton.addEventListener("click", getMedia);
+
+   function camSuccess(imageData) {
+      console.log(imageData);
+
+      //Add phonegap plugin and cordove-plugin-filepath
+      if(imageData.startsWith("content://")) {
+         //we have a native file path (usually returned when a user gets a file from their android gallery)
+         //Let's convert to a fileURI that we can consume properly
+         window.FilePath.resolveNativePath(imageData, function(localFileUri){
+            var img = '<img src="'+localFileUri+'" style="display:block; padding: 0px 15px 15px 15px; box-sizing:border-box; width:100px; height: 100px; margin: 0 auto;">';
+            console.log(img);
+            document.getElementById('CameraOutput').innerHTML = img;
+         })
+      }
+      else {
+         var img = `<img src="${imageData}" style="display:block; padding: 0px 15px 15px 15px; box-sizing:border-box; width:100px; height: 100px; margin: 0 auto;">`;
+         // var img = imageData;
+         document.getElementById('CameraOutput').innerHTML = img;
+      }
+   }
+
+   function camError(errorMessage) {
+      alert('Error: ' + errorMessage);
+   }
+
+   function uriSuccess(file_URI) {
+      document.getElementById('CameraOutput').innerHTML = `<p style=" margin: 0; padding: 0px 15 px 15px 15px;">${file_URI}</p>`;
+   }
+
+   function takePicture() {
+      var options = {
+         'quality': 85,
+         'targetWidth': 1280,
+         'targetHeight': 720,
+         'saveToPhotoAlbum': false,
+         'allowEdit': false,
+         'destinationType': navigator.camera.DestinationType.FILE_URI,
+         /*
+            0: DATA_URL       Return image as base64-encoded string
+            1: FILE_URI       Return image file URI
+            2: NATIVE_URI     Return image native URI (assets-library: for iOS, content:// for Android)
+          */
+   
+         'sourceType': navigator.camera.PictureSourceType.CAMERA,
+         /*
+            0: PHOTOLIBRARY
+            1: CAMERA
+            2: SAVEDPHOTOALBUM
+         */
+   
+         'MediaType': navigator.camera.MediaType.PICTURE,
+         /*
+            0:PICTURE         Allow selectioin of still pictures only. DEFAULT will return format specified via DestinationType
+            1: VIDEO          Allow selection of video only, WILL ALWAYS RETURN FILE_URI
+            2: ALLMEDIA       Allow selection from all media types
+         */
+         'encodingType': navigator.camera.EncodingType.JPEG,
+         /*
+            0: JPEG           Return JPEG encoded image
+            1: PNG            Return PNG encoded image
+         */
+   
+         'DIrection': navigator.camera.Direction.BACK,
+         /*
+            0: BACK           Use the back-facing camera
+            1: FRONT          Use the fron-facing camera
+         */
+      };
+   
+      navigator.camera.getPicture(camSuccess, camError, options);
+   }
+   
+   function getImage() {
+      var options = {
+         'destinationType': 2, // NATIVE_URI: 2
+         'sourceType': 0, //PHOTOLIBRARY: 0
+         'MediaType': 0, //PICTURE: 0
+      };
+      navigator.camera.getPicture(camSuccess, camError, options);
+   }
+   
+   function getImageForEdit() {
+      var options = {
+         'destinationType': 2, // NATIVE_URI: 2
+         'sourceType': 0, //PHOTOLIBRARY: 0
+         'MediaType': 0, //PICTURE: 0
+         'allowEdit': true,
+      };
+      navigator.camera.getPicture(camSuccess, camError, options);
+   }
+   
+   function getVideo() {
+      var options = {
+         'destinationType': 1, // FILE_URI: 1
+         'sourceType': 0, //PHOTOLIBRARY: 0
+         'MediaType': 1, //VIDEO: 1
+      };
+      navigator.camera.getPicture(uriSuccess, camError, options);
+   }
+   
+   function getMedia() {
+      var options = {
+         'destinationType': 1, // FILE_URI: 1
+         'sourceType': 0, //PHOTOLIBRARY: 0
+         'MediaType': 2, //ALLMEDIA: 2
+      };
+      navigator.camera.getPicture(uriSuccess, camError, options);
+   }
+}
+
+function useMedia() {
+   var sourceToPlay;
+
+   if(device.platform === 'Android') {
+      sourceToPlay = '/android_asset/www/juan-karlos-buwan-lyric-video.mp3';
+   }
+   else {
+      sourceToPlay = 'juan-karlos-buwan-lyric-video.mp3';
+   }
+
+   var media = new Media(sourceToPlay, null, mediaError, mediaStatus);
+
+   var  playButton = document.getElementById("play-media-button");
+   var  pauseButton = document.getElementById("pause-media-button");
+   var  stopButton = document.getElementById("stop-media-button");
+   var  increaseVolumeButton = document.getElementById("increase-volume-button");
+   var  muteVolumeButton = document.getElementById("mute-volume-button");
+   var  restartButton = document.getElementById("restart-button");
+
+   playButton.addEventListener("click", playMedia);
+   pauseButton.addEventListener("click", pauseMedia);
+   stopButton.addEventListener("click", stopMedia);
+   increaseVolumeButton.addEventListener("click", increaseVolume);
+   muteVolumeButton.addEventListener("click", muteVolume);
+   restartButton.addEventListener("click", restart);
+
+   function mediaStatus(status) {
+      document.getElementById("duration").innerHTML = (Math.floor(media.getDuration() / 60)) + ':' + (Math.floor(media.getDuration() % 60));
+
+      if(status === 0) {
+         document.getElementById("media-status").innerHTML = 'Sorry no media';
+      }
+      if(status === 1) {
+         document.getElementById("media-status").innerHTML = 'Loaading...';
+      }
+      if(status === 2) {
+         document.getElementById("media-status").innerHTML = 'Playing...';
+      }
+      if(status === 3) {
+         document.getElementById("media-status").innerHTML = 'Paused...';
+      }
+      if(status === 4) {
+         document.getElementById("media-status").innerHTML = 'Stopped!';
+      }
+   }
+
+   function mediaError(err) {
+      document.getElementById('media-status').innerHTML = 'There was a problem. Error Code' + err.code;
+   }
+
+   function playMedia() {
+      media.play();
+   }
+
+   function pauseMedia() {
+      media.pause();
+   }
+
+   function stopMedia() {
+      media.stop();
+   }
+
+   function increaseVolume() {
+      media.setVolume(1.0);
+   }
+
+   function muteVolume() {
+      media.setVolume(0.0);
+   }
+
+   function restart() {
+      media.seekTo(1);
+   }
+}
+
+function useMediaCapture() {
+   var capture = navigator.device.capture;
+   var captureOptions = {
+      limit: 3,
+      duration: 10,
+   };
+   
+   var captureAudioButton = document.getElementById("capture-audio-button");
+   var captureImageButton = document.getElementById("capture-image-button");
+   var captureVideoButton = document.getElementById("capture-video-button");
+
+   captureAudioButton.addEventListener("click", captureAudio);
+   captureImageButton.addEventListener("click", captureImage);
+   captureVideoButton.addEventListener("click", captureVideo);
+
+   function captureSuccess(mediaFiles) {
+      console.log(mediaFiles);
+      document.getElementById('capture-output').innerHTML = JSON.stringify(mediaFiles, null, '</br>');
+      var i;
+      for( i = 0; i < mediaFiles.length; i++) {
+         var mediaFile = mediaFiles[i];
+         mediaFile.getFormatData(
+            function(data) {
+               document.getElementById('capture-output').insertAdjacentHTML('beforeend', '<hr/>' + JSON.stringify(data, null, '<br/>'));
+            },
+            function(err) {alert(err.code);}
+         );
+      }
+   }
+
+   function captureError(err) {
+      navigator.notification.alert('Error code: ' + err.code);
+   }
+
+   function captureAudio() {
+      capture.captureAudio(captureSuccess, captureError, captureOptions);
+   }
+
+   function captureImage() {
+      navigator.device.capture.captureImage(captureSuccess, captureError, captureOptions);
+   }
+
+   function captureVideo() {
+      capture.captureVideo(captureSuccess, captureError, captureOptions);
+   }
+}
